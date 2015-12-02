@@ -84,12 +84,12 @@ def showImg(width=400,height=300):
     data = bos.toString("UTF-8");
     return {"display":"image","data":data}
 
-def showIdv():
+def showIdv(default=False):
     """ This creates a new IDV GUI window for showing after setOffScreen was True, after this GUI window of 
     IDV is visible to the user, reset setOffScreen to False to go back into offscreen mode."""
     setOffScreen(False)
     idv.createNewWindow()
-    try: 
+    if default==True: 
        if os.path.isfile(os.path.join(str(idv.getResourceManager().getUserPath()),"default.xidv")):
            loadBundle(os.path.join(str(idv.getResourceManager().getUserPath()),"default.xidv"))
        elif not len(idv.history) == 0:
@@ -97,8 +97,6 @@ def showIdv():
                if str(hf.getName()).endswith(".xidv"):
                    loadBundle(str(hf.getName()))
                    break
-       else:
-           pass
 def saveJython(func=None,libname=None):
     """ This function saves history of interactive session to IDV Jython Library.
     When supplied by a defined class/function argument saves the code relavent to that class/function only 
