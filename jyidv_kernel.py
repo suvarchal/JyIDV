@@ -53,7 +53,7 @@ class JythonKernel(Kernel):
                     
                liblist=["idv.jar","ncIdv.jar","external.jar","visad.jar","jython.jar"]
                libs=libs=":".join([os.environ['IDV_HOME']+"/"+lib for lib in liblist])     
-               opts=" -Xmx512m -XX:PermSize=512m -XX:MaxPermSize=512m -XX:+DisableExplicitGC -Didv.enableStereo=false -cp "+libs+" org.python.util.jython -i "+os.environ['IDV_HOME']+"/.jythonrc.py"
+               opts=" -Xmx1024m -XX:+DisableExplicitGC -Didv.enableStereo=false -cp "+libs+" org.python.util.jython -i "+os.environ['IDV_HOME']+"/.jythonrc.py"
                self._executable=self._executable+opts
             else:
                raise Exception("IDV_HOME not found") 
@@ -83,7 +83,7 @@ class JythonKernel(Kernel):
                    plot_opts=code.strip().lstrip("#").strip('()').split('(')[1][1:-1]       
                 plot_dir = tempfile.mkdtemp(dir=os.path.expanduser("~"))
                 plot_file=","+plot_dir+"/"+"plot_"+str(random.randint(1000, 9999))+".png"
-                output = self.jywrapper.run_command("getImage();writeImage('"+plot_file+"','"+plot_opts+"')", timeout=None)
+                output = self.jyrepl("getImage();writeImage('"+plot_file+"','"+plot_opts+"')", timeout=None)
                 if not len(glob("%s/*.png" % plot_dir))==0:
                    images = [open(imgfile, 'rb').read() for imgfile in glob("%s/*.png" % plot_dir)]
                    display_data = []
@@ -231,50 +231,44 @@ class JythonKernel(Kernel):
         return {'status':'ok', 'found': found,
                 'data': {'text/plain':data}, 'metadata': dict()}
     def jyrepl(self,code,timeout=None):
-#        out=""
-#        indents=cycle(map(lambda x: len(x)-len(x.lstrip()),code.splitlines()))
-#        indents.next()
-#        for line in code.splitlines():
-#            #print str(ln+1)+" code is "+line
-#            self._child.sendline(line)
-#            now_prompt=self._child.expect_exact([u">>> ",u"... "])
-#            now_prompt=self._child.expect_exact([u">>> ",u"... "])    
-#            if len(self._child.before.splitlines())>1:    out+='\n'.join(self._child.before.splitlines()[1:])+'\n'#for clean outputs
-#            curr_indent=len(line)-len(line.lstrip())
-#            if not curr_indent==indents.next() and now_prompt==1: #should take care of last line and loops but not loops
-#                self._child.send(u'\n')
-#                now_prompt=self._child.expect_exact([u">>> ",u"... "])
-#                now_prompt=self._child.expect_exact([u">>> ",u"... "])
-#                if len(self._child.before.splitlines())>1:    out+='\n'.join(self._child.before.splitlines()[1:])+'\n'
+        out=""
+        indents=cycle(map(lambda x: len(x)-len(x.lstrip()),code.splitlines()))
+        indents.next()
+        for line in code.splitlines():
+            #print str(ln+1)+" code is "+line
+            self._child.sendline(line)
+            now_prompt=self._child.expect_exact([u">>> ",u"... "])
+            now_prompt=self._child.expect_exact([u">>> ",u"... "])    
+            if len(self._child.before.splitlines())>1:    out+='\n'.join(self._child.before.splitlines()[1:])+'\n'#for clean outputs
+            curr_indent=len(line)-len(line.lstrip())
+            if not curr_indent==indents.next() and now_prompt==1: #should take care of last line and loops but not loops
+                self._child.send(u'\n')
+                now_prompt=self._child.expect_exact([u">>> ",u"... "])
+                now_prompt=self._child.expect_exact([u">>> ",u"... "])
+                if len(self._child.before.splitlines())>1:    out+='\n'.join(self._child.before.splitlines()[1:])+'\n'
 #        if now_prompt==1:
 #            self._child.send(u'\n')
 #            now_prompt=self._child.expect_exact([u">>> ",u"... "])
 #            now_prompt=self._child.expect_exact([u">>> ",u"... "])
 #            if len(self._child.before.splitlines())>1:    out+='\n'.join(self._child.before.splitlines()[1:])+'\n'
-        if len(code.splitlines())==1:
-            out=""
-            code='eval('+repr(code.strip())+')'
-            self._child.sendline(code)
-            now_prompt=self._child.expect_exact([u">>> ",u"... "])
-            now_prompt=self._child.expect_exact([u">>> ",u"... "])
-                #if len(self._child.before.splitlines())>1:    
-            if len(self._child.before.splitlines())>1:    out+='\n'.join(self._child.before.splitlines()[1:])+'\n'
-        else:
-            out=""
-            code='exec('+repr(code)+')'
-            for line in code.splitlines():
-                #print str(ln+1)+" code is "+line
-                self._child.sendline(line)
-                now_prompt=self._child.expect_exact([u">>> ",u"... "])
-                now_prompt=self._child.expect_exact([u">>> ",u"... "])
-                #if len(self._child.before.splitlines())>1:    
-                if len(self._child.before.splitlines())>1:    out+='\n'.join(self._child.before.splitlines()[1:])+'\n'
-        #cmd="comp=compile("+repr(code)+")"
-        #self._child.send(cmd)
-        #cmd="exec(comp)"
-        #now_prompt=self._child.expect_exact([u">>> ",u"... "])
-        #now_prompt=self._child.expect_exact([u">>> ",u"... "])
-        #out='\n'.join(self._child.before.splitlines()[1:])+'\n'
+
+# Below is way to go in future gives line numbers for errors, simple but eval doesnt evaluate one line x=1
+#but exec doesnt return objects, problematic for functions like getImage or anything that returns data
+#        if len(code.splitlines())==1:
+#            out=""
+#            code='eval('+repr(code.strip())+')'
+#            self._child.sendline(code)
+#            now_prompt=self._child.expect_exact([u">>> ",u"... "])
+#            now_prompt=self._child.expect_exact([u">>> ",u"... "])
+#            if len(self._child.before.splitlines())>1:    out+='\n'.join(self._child.before.splitlines()[1:])+'\n'
+#        else:
+#            out=""
+#            code='exec('+repr(code)+')'
+#            for line in code.splitlines():
+#                self._child.sendline(line)
+#                now_prompt=self._child.expect_exact([u">>> ",u"... "])
+#                now_prompt=self._child.expect_exact([u">>> ",u"... "])
+#                if len(self._child.before.splitlines())>1:    out+='\n'.join(self._child.before.splitlines()[1:])+'\n'
         return out
 if __name__ == '__main__':
     from ipykernel.kernelapp import IPKernelApp

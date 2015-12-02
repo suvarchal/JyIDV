@@ -1,6 +1,9 @@
 import sys
-sys.packageManager.addJar('idv.jar',True)
-sys.packageManager.addJar('visad.jar',True)
+import os
+idvjar=os.path.join(os.environ['IDV_HOME'],"idv.jar")
+visadjar=os.path.join(os.environ['IDV_HOME'],"visad.jar")
+sys.packageManager.addJar(idvjar,True)
+sys.packageManager.addJar(visadjar,True)
 sys.add_package('visad')
 sys.add_package('visad.python')
 sys.add_package('visad.data.units')
@@ -39,9 +42,10 @@ import ucar.unidata.data.grid.GridTrajectory as GridTrajectory
 
 islInterpreter=ImageGenerator(idv)
 JM=idv.getJythonManager()
-for libholder in JM.getLibHolders():
+LibHolders=JM.getLibHolders()
+for i in range(len(LibHolders)):
     try:
-        exec(libholder.getText())
+        exec(LibHolders.get(i).getText())
     except:
         pass 
 
@@ -85,6 +89,16 @@ def showIdv():
     IDV is visible to the user, reset setOffScreen to False to go back into offscreen mode."""
     setOffScreen(False)
     idv.createNewWindow()
+    try: 
+       if os.path.isfile(os.path.join(str(idv.getResourceManager().getUserPath()),"default.xidv")):
+           loadBundle(os.path.join(str(idv.getResourceManager().getUserPath()),"default.xidv"))
+       elif not len(idv.history) == 0:
+           for hf in idv.history:
+               if str(hf.getName()).endswith(".xidv"):
+                   loadBundle(str(hf.getName()))
+                   break
+       else:
+           pass
 def saveJython(func=None,libname=None):
     """ This function saves history of interactive session to IDV Jython Library.
     When supplied by a defined class/function argument saves the code relavent to that class/function only 
