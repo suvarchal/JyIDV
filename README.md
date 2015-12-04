@@ -13,4 +13,4 @@
 >* If running ipython notebook raises any errors related to ipykernel, please install jupyter_client by using `conda install jupyter_client` or `pip install jupyter_client`
 
 
-### To see features of IDV notebook, check this example [notebook](https://github.com/suvarchal/JyIDV/edit/master/examples/IDVoverview.ipynb) ###
+### To see features of IDV notebook, check this example [notebook](https://github.com/suvarchal/JyIDV/blob/master/examples/IDVoverview.ipynb) ###
