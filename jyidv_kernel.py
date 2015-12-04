@@ -53,7 +53,7 @@ class JythonKernel(Kernel):
                     
                liblist=["idv.jar","ncIdv.jar","external.jar","visad.jar","jython.jar"]
                libs=libs=":".join([os.environ['IDV_HOME']+"/"+lib for lib in liblist])     
-               opts=" -Xmx1024m -XX:+DisableExplicitGC -Didv.enableStereo=false -cp "+libs+" org.python.util.jython -i "+os.environ['IDV_HOME']+"/.jythonrc.py"
+               opts=" -Xmx2048m -XX:+DisableExplicitGC -Didv.enableStereo=false -cp "+libs+" org.python.util.jython -i "+os.environ['IDV_HOME']+"/.jythonrc.py"
                self._executable=self._executable+opts
             else:
                raise Exception("IDV_HOME not found") 
@@ -91,6 +91,25 @@ class JythonKernel(Kernel):
                    for image in images:
                        display_data.append({'image/png': b64encode(image).decode('ascii')})
                    doDisplay=True
+            elif code.strip().startswith("showMovie"):
+                plot_dir = tempfile.mkdtemp(dir=os.path.expanduser("~"))
+                plot_file="plot_"+str(random.randint(1000, 9999))+".gif"
+                plot_file=os.path.join(plot_dir,plot_file)
+                cmd='idv.waitUntilDisplaysAreDone();writeMovie('+repr(plot_file)+')'
+                self.jyrepl(cmd)
+                if not len(glob("%s/*.gif" % plot_dir))==0:
+                    gifimages = [open(imgfile, 'rb').read() for imgfile in glob("%s/*.gif" % plot_dir)]  
+                display_data = []
+                for image in gifimages:
+                       display_data.append({'image/png': b64encode(image).decode('ascii')})
+                rmtree(plot_dir)
+                #### below works when showMovie imagefile
+                #plot_file=code.strip("showMovie").strip()
+                #display_data = []
+                #if os.path.isfile(plot_file):
+                #   gifimage = open(plot_file, 'rb').read()
+                #   display_data.append({'image/png': b64encode(gifimage).decode('ascii')})
+                doDisplay=True
             else:
   	        output = self.jyrepl(code, timeout=None)
                 if output.lstrip().startswith("{"):
@@ -102,8 +121,10 @@ class JythonKernel(Kernel):
                     output = '\n'.join([line for line in output.splitlines()])+'\n'
         except KeyboardInterrupt:
             self._child.sendintr()
-            output = self._child.before+output+'\n Got interrupt: Inturrupting.....'
+            output = self._child.before+'\n Got interrupt: Current Jython doenst support Interrupting ...so Restarting.....'
             interrupt = True
+            #self.jyrepl("exit()")
+            #self._start_jython()
 	except EOF:
             output = self._child.before + 'Reached EOF Restarting Jython'
             self._start_jython()
@@ -230,6 +251,10 @@ class JythonKernel(Kernel):
 
         return {'status':'ok', 'found': found,
                 'data': {'text/plain':data}, 'metadata': dict()}
+    def do_shutdown(self,restart):
+        #self.send("exit()")
+        self._child.kill(signal.SIGKILL)
+        return {'status':'ok', 'restart':restart}
     def jyrepl(self,code,timeout=None):
         out=""
         indents=cycle(map(lambda x: len(x)-len(x.lstrip()),code.splitlines()))
@@ -253,7 +278,8 @@ class JythonKernel(Kernel):
 #            if len(self._child.before.splitlines())>1:    out+='\n'.join(self._child.before.splitlines()[1:])+'\n'
 
 # Below is way to go in future gives line numbers for errors, simple but eval doesnt evaluate one line x=1
-#but exec doesnt return objects, problematic for functions like getImage or anything that returns data
+#but exec doesnt return objects, problematic for functions like getImage or anything that returns data or just typing
+#object doesnt produce the object
 #        if len(code.splitlines())==1:
 #            out=""
 #            code='eval('+repr(code.strip())+')'
