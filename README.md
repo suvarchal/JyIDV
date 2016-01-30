@@ -1,5 +1,8 @@
 # What is IDV notebook? 
-### *IDV notebook provides an enhanced IDV interactive shell experience and a powerful notebook.* ###
+### *IDV notebook* provides 
+
+#### 1. a better development setting than the IDV interactive shell experience, and 
+#### 2. a powerful notebookink capability for capturing a scientific exploration of an IDV bundle.* ###
 
 
 
