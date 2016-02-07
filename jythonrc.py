@@ -88,7 +88,10 @@ def showIdv(default=False):
     """ This creates a new IDV GUI window for showing after setOffScreen was True, after this GUI window of 
     IDV is visible to the user, reset setOffScreen to False to go back into offscreen mode."""
     setOffScreen(False)
-    idv.createNewWindow()
+    idv=ucar.unidata.idv.IntegratedDataViewer(True)
+    IdvUIM=idv.getIdvUIManager()
+    IdvUIM.initDone()
+    IdvUIM.closeHelpTips()    
     if default==True: 
        if os.path.isfile(os.path.join(str(idv.getResourceManager().getUserPath()),"default.xidv")):
            loadBundle(os.path.join(str(idv.getResourceManager().getUserPath()),"default.xidv"))
