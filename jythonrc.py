@@ -32,7 +32,7 @@ from ucar.unidata.idv.ui import ImageGenerator
 
 from ucar.unidata.data import *
 from ucar.unidata.idv import *
-from ucar.unidata.data.grid import * 
+from ucar.unidata.data.grid import *
 from java.lang import Integer
 import ucar.unidata.data.grid.GridMath as GridMath
 import ucar.unidata.data.DataUtil as DataUtil
@@ -48,26 +48,26 @@ for i in range(len(LibHolders)):
     try:
         exec(LibHolders.get(i).getText())
     except:
-        pass 
+        pass
 
 
 def saveFormula(formulaid,desc,formula="",group=None):
-    """ This function makes a IDV formula from jython script and puts it in relavent group 
+    """ This function makes a IDV formula from jython script and puts it in relavent group
     in IDV list of formulas """
     # to do to check if function used in formula is legal/available
     from ucar.unidata.data import DerivedDataDescriptor,DataCategory
     from java.util import ArrayList
     JM=idv.getJythonManager()
     if not formulaid == None or not desc== None:
-        if isinstance(group,list):   
+        if isinstance(group,list):
             for gr in group:
                 categories=ArrayList()
-                categories.add(DataCategory.parseCategory(gr,True))  
+                categories.add(DataCategory.parseCategory(gr,True))
                 JM.addFormula(DerivedDataDescriptor(idv.getIdv(),formulaid,desc,formula,categories))
         else:
             group=str(group)
             categories=ArrayList()
-            categories.add(DataCategory.parseCategory(group,True))  
+            categories.add(DataCategory.parseCategory(group,True))
             JM.addFormula(DerivedDataDescriptor(idv.getIdv(),formulaid,desc,formula,categories))
 
 def showImg(width=None,height=None):
@@ -106,7 +106,7 @@ def showImgWithFullWindow(width=None,height=None):
     #robotx.delay(250)
     Misc.sleep(350)
     pause()
-    img=robotx.createScreenCapture(Rectangle( myframe.getX(),myframe.getY(),myframe.getWidth(),myframe.getHeight())) 
+    img=robotx.createScreenCapture(Rectangle( myframe.getX(),myframe.getY(),myframe.getWidth(),myframe.getHeight()))
     if width != None and height != None:
         img=toBufferedImage(resize(img,width,height));
     bos=ByteArrayOutputStream();
@@ -154,14 +154,14 @@ def BufferedImgToNotebook(img):
     return {"display":"image","data":data}
 
 def showIdv(default=False):
-    """ This creates a new IDV GUI window for showing after setOffScreen was True, after this GUI window of 
+    """ This creates a new IDV GUI window for showing after setOffScreen was True, after this GUI window of
     IDV is visible to the user, reset setOffScreen to False to go back into offscreen mode."""
     setOffScreen(False)
     idv=ucar.unidata.idv.IntegratedDataViewer(True)
     IdvUIM=idv.getIdvUIManager()
     IdvUIM.initDone()
-    IdvUIM.closeHelpTips()    
-    if default==True: 
+    IdvUIM.closeHelpTips()
+    if default==True:
        if os.path.isfile(os.path.join(str(idv.getResourceManager().getUserPath()),"default.xidv")):
            loadBundle(os.path.join(str(idv.getResourceManager().getUserPath()),"default.xidv"))
        elif not len(idv.history) == 0:
@@ -171,7 +171,7 @@ def showIdv(default=False):
                    break
 def saveJython(func=None,libname=None):
     """ This function saves history of interactive session to IDV Jython Library.
-    When supplied by a defined class/function argument saves the code relavent to that class/function only 
+    When supplied by a defined class/function argument saves the code relavent to that class/function only
     When supplied by second string argument it creates library from that name or write to exisiting library by that
     name, only if it is editable by current user."""
     try:
@@ -181,7 +181,7 @@ def saveJython(func=None,libname=None):
        import os
        import readline
        from random import randint
-           
+
        pythonDir = IOUtil.joinDir(idv.getStore().getUserDirectory().toString(),"python")
 
        if (libname == None):
@@ -206,12 +206,12 @@ def saveJython(func=None,libname=None):
            if isinstance(func,PyFunction):
                funcname="def "+funcname+"("
            elif isinstance(func,PyClass):
-               funcname="class "+funcname+"(" 
+               funcname="class "+funcname+"("
            fread=open("temp.txt").read()
            fnameindx=fread.rindex(funcname)
            #fnameindx=fread[:fnameindx].rindex('def')
            prevIndt=None
-           functxt=[]    
+           functxt=[]
            for ln,line in enumerate(fread[fnameindx:].splitlines()):
                currIndt=len(line)-len(line.lstrip())
                if prevIndt<=currIndt or prevIndt==None:
@@ -223,7 +223,7 @@ def saveJython(func=None,libname=None):
            f.write('\n'.join(functxt))
            f.close()
        else:
-           raise Exception("Unknown Error saving to IDV Jython library")    
+           raise Exception("Unknown Error saving to IDV Jython library")
     except Exception as exc:
        return "Could not create a IDV Jython library: ",exc
 
@@ -234,7 +234,7 @@ def do_complete(text):
     import readline
     import rlcompleter
     matchDict=__main__.__dict__.copy()
-    matchDict.update(__builtin__.globals()) 
+    matchDict.update(__builtin__.globals())
     rlc=rlcompleter.Completer(matchDict)
     rlc.complete(text,0)
     return list(set(rlc.matches)) #just to get rid of duplicates
@@ -249,17 +249,17 @@ def do_inspect(text):
         ins=pydoc.plain(pydoc.render_doc(obj))
         return ins
     except NameError:
-        pass    
-    
-def docHTML(text): 
+        pass
+
+def docHTML(text):
     """ just testing """
-    import pydoc 
+    import pydoc
     try:
         token=text.split()[-1]
         if '(' in token:   #better do regex
            token=token[:-1]
         obj=eval(token)
-        #pyobj,name=pydoc.resolve(obj,0)          
+        #pyobj,name=pydoc.resolve(obj,0)
         ins=pydoc.plain(pydoc.render_doc(obj))
         html=pydoc.HTMLDoc()
         return html.page(pydoc.describe(obj), html.document(obj, name))

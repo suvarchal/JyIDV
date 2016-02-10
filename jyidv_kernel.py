@@ -50,29 +50,29 @@ class JythonKernel(Kernel):
                    self._executable=os.environ['IDV_HOME']+"/jre.bundle/Contents/Home/jre/bin/java"
                else:
                    self._executable="java"
-                    
+
                liblist=["idv.jar","ncIdv.jar","external.jar","visad.jar","jython.jar"]
-               libs=libs=":".join([os.environ['IDV_HOME']+"/"+lib for lib in liblist])     
+               libs=libs=":".join([os.environ['IDV_HOME']+"/"+lib for lib in liblist])
                opts=" -Xmx2048m -XX:+DisableExplicitGC -Didv.enableStereo=false -cp "+libs+" org.python.util.jython -i "+os.environ['IDV_HOME']+"/.jythonrc.py"
                self._executable=self._executable+opts
             else:
-               raise Exception("IDV_HOME not found") 
-                     
+               raise Exception("IDV_HOME not found")
+
             self._child  = spawn(self._executable,timeout = None)
 #            self.jywrapper = replwrap.REPLWrapper(self._child,u">>> ",prompt_change=None,new_prompt=u">>> ",continuation_prompt=u'... ')
             #rows, cols = map(int, os.popen('stty size', 'r').read().split())
- #           self._child.setwinsize(300,400) 
+ #           self._child.setwinsize(300,400)
             self._child.waitnoecho(True)
             self._child.expect(u">>> ")
-            self._child.setwinsize(600,400) 
+            self._child.setwinsize(600,400)
         finally:
             signal.signal(signal.SIGINT, sig)
-       
+
 
     def do_execute(self, code, silent, store_history=False, user_expressions=None,
                    allow_stdin=False):
         code   =  code.strip()
-	abort_msg = {'status': 'abort',
+        abort_msg = {'status': 'abort',
                      'execution_count': self.execution_count}
         interrupt = False
         doDisplay = False
@@ -80,7 +80,7 @@ class JythonKernel(Kernel):
             if code.strip().startswith("#show"):
                 plot_opts=""
                 if len(code.strip().lstrip("#").strip('()').split('(')[1][1:-1])>1:
-                   plot_opts=code.strip().lstrip("#").strip('()').split('(')[1][1:-1]       
+                   plot_opts=code.strip().lstrip("#").strip('()').split('(')[1][1:-1]
                 plot_dir = tempfile.mkdtemp(dir=os.path.expanduser("~"))
                 plot_file=","+plot_dir+"/"+"plot_"+str(random.randint(1000, 9999))+".png"
                 output = self.jyrepl("getImage();writeImage('"+plot_file+"','"+plot_opts+"')", timeout=None)
@@ -98,7 +98,7 @@ class JythonKernel(Kernel):
                 cmd='idv.waitUntilDisplaysAreDone();writeMovie('+repr(plot_file)+')'
                 self.jyrepl(cmd)
                 if not len(glob("%s/*.gif" % plot_dir))==0:
-                    gifimages = [open(imgfile, 'rb').read() for imgfile in glob("%s/*.gif" % plot_dir)]  
+                    gifimages = [open(imgfile, 'rb').read() for imgfile in glob("%s/*.gif" % plot_dir)]
                 display_data = []
                 for image in gifimages:
                        display_data.append({'image/png': b64encode(image).decode('ascii')})
@@ -111,7 +111,7 @@ class JythonKernel(Kernel):
                 #   display_data.append({'image/png': b64encode(gifimage).decode('ascii')})
                 doDisplay=True
             else:
-  	        output = self.jyrepl(code, timeout=None)
+                output = self.jyrepl(code, timeout=None)
                 if output.lstrip().startswith("{"):
                     out=eval(output.strip())
                     display_data=[]
@@ -125,14 +125,14 @@ class JythonKernel(Kernel):
             interrupt = True
             #self.jyrepl("exit()")
             #self._start_jython()
-	except EOF:
+        except EOF:
             output = self._child.before + 'Reached EOF Restarting Jython'
             self._start_jython()
- 	if not silent and not doDisplay:
+        if not silent and not doDisplay:
             stream_content = {'name': 'stdout', 'text': output}
             self.send_response(self.iopub_socket, 'stream', stream_content)
 
- 	if not silent and  doDisplay:
+        if not silent and  doDisplay:
             for data in display_data:
                 self.send_response(self.iopub_socket, 'display_data',{'data':data,'metadata':{}})
         #doDisplay=True
@@ -140,10 +140,10 @@ class JythonKernel(Kernel):
           # print("i am in Display")
           # plot_dir = "/home/suvarchal" #tempfile.mkdtemp(dir=os.path.expanduser("~"))
           # plot_file=plot_dir+"/"+"plot_"+str(random.randint(1000, 9999))+".png"
-           #plot_opts=display_code.strip('()')      
+           #plot_opts=display_code.strip('()')
            #output = self.jywrapper.run_command("getImage();writeImage('"+plot_file+"')", timeout=None)
            #if not len(glob("%s/plot_jumbo.png" % plot_dir))==0:
-              #print("found plot") 
+              #print("found plot")
               #images = [open(imgfile, 'rb').read() for imgfile in glob("%s/plot_jumbo.png" % plot_dir)]
               #display_data = []
 
@@ -153,9 +153,9 @@ class JythonKernel(Kernel):
 
               #for data in display_data:
               #    self.send_response(self.iopub_socket, 'display_data',{'data':data,'metadata':{}})
-	if code.strip() and store_history:
-	    self.hist_cache.append(code.strip())
- 	   #rmtree(plot_dir)
+        if code.strip() and store_history:
+            self.hist_cache.append(code.strip())
+            #rmtree(plot_dir)
         if interrupt:
             return {'status': 'abort', 'execution_count': self.execution_count}
 
@@ -168,13 +168,13 @@ class JythonKernel(Kernel):
 
         if not code or code[-1] == ' ':
             return default
-        
- 	tokens = code.split()
+
+        tokens = code.split()
         if not tokens:
             return default
         token = tokens[-1]
         start = cursor_pos - len(token)
-        
+
 #        if len(re.split(r"[^\w]",token)) > 1:
 #            cmd="dir("+re.split(r"[^\w]",token)[-2]+")"
 #            output=self.jyrepl(cmd,timeout=None)
@@ -188,12 +188,12 @@ class JythonKernel(Kernel):
         #self._child.send(code.strip()+'\t')
         #self._child.expect(u">>> ",timeout=None)
         #self._child.expect(u">>> ",timeout=None)
-        #output=self._child.before 
+        #output=self._child.before
         matches=[]
         code='do_complete('+repr(code)+')'
         output=self.jyrepl(code)
         if len(output)>1:    matches.extend(eval(output))
-	#matches.extend([e for e in re.split(r"[^\w]",output)[:] if not e.strip()=="" and not e.strip().startswith("__")])
+    #matches.extend([e for e in re.split(r"[^\w]",output)[:] if not e.strip()=="" and not e.strip().startswith("__")])
         if not matches:
             return default
         matches = [m for m in matches if m.startswith(token)]
@@ -201,15 +201,15 @@ class JythonKernel(Kernel):
         return {'matches': sorted(matches), 'cursor_start': start,
                 'cursor_end': cursor_pos, 'metadata': dict(),
                 'status': 'ok'}
-        
+
 
     def do_history(self,hist_access_type,output,raw,session=None,start=None,stoop=None,n=None,pattern=None,unique=None):
         if not self.hist_file:
             return {'history':[]}
         if not os.path.exists(self.hist_file):
             with open(self.hist_file, 'wb') as f:
-                f.write('') 
-        
+                f.write('')
+
         with open(self.hist_file, 'rb') as f:
             history = f.readlines()
 
@@ -225,11 +225,11 @@ class JythonKernel(Kernel):
         found=False
         default={'status':'ok', 'found': False,
                 'data': dict(), 'metadata': dict()}
-        
+
         if not code or code[-1] == ' ':
             return default
-        
- 
+
+
         #if len(re.split(r"[^\w]",token)) > 1:
         #    cmd="dir("+re.split(r"[^\w]",token)[-2]+")"
         #    output=self.jyrepl(cmd,timeout=None)
@@ -240,7 +240,7 @@ class JythonKernel(Kernel):
         #    cmd=("import sys;sys.builtins.keys()")
         #    output=self.jyrepl(cmd,timeout=None)
         #    matches.extend([e for e in re.split(r"[^\w]",output)[:] if not e.strip()=="" and not e.strip().startswith("__")])
-        
+
         code='do_inspect('+repr(code)+')'
         data=self.jyrepl(code)
         try:
@@ -263,7 +263,7 @@ class JythonKernel(Kernel):
             #print str(ln+1)+" code is "+line
             self._child.sendline(line)
             now_prompt=self._child.expect_exact([u">>> ",u"... "])
-            now_prompt=self._child.expect_exact([u">>> ",u"... "])    
+            now_prompt=self._child.expect_exact([u">>> ",u"... "])
             if len(self._child.before.splitlines())>1:    out+='\n'.join(self._child.before.splitlines()[1:])+'\n'#for clean outputs
             curr_indent=len(line)-len(line.lstrip())
             if not curr_indent==indents.next() and now_prompt==1: #should take care of last line and loops but not loops

@@ -15,8 +15,8 @@ except ImportError:
 
 kernel_json = {
     "argv": [sys.executable,
-	     "-m", "jyidv_kernel",
-	     "-f", "{connection_file}"],
+         "-m", "jyidv_kernel",
+         "-f", "{connection_file}"],
     "display_name": "IDV",
     "language": "python",
     "name": "jyidv_kernel",
