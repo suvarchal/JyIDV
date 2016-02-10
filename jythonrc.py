@@ -21,6 +21,7 @@ from visad.python.JPythonMethods import *
 import ucar
 from java.util import ArrayList
 idv=ucar.unidata.idv.IntegratedDataViewer(0)
+IdvUIM=idv.getIdvUIManager()
 
 import ucar.unidata.data.grid.GridUtil as GridUtil
 import ucar.unidata.data.DataSelection as DataSelection
@@ -69,7 +70,7 @@ def saveFormula(formulaid,desc,formula="",group=None):
             categories.add(DataCategory.parseCategory(group,True))  
             JM.addFormula(DerivedDataDescriptor(idv.getIdv(),formulaid,desc,formula,categories))
 
-def showImg(width=400,height=300):
+def showImg(width=None,height=None):
     """ This function shows the image from current IDV frame, optional arguments are width and height in pixels, they
     currently default to 400 and 300"""
     from java.util import Base64 ##only in java8
@@ -77,8 +78,76 @@ def showImg(width=400,height=300):
     from java.io import ByteArrayOutputStream
     from ucar.unidata.ui.ImageUtils import resize,toBufferedImage
     pause()
-    img=getImage() 
-    img=toBufferedImage(resize(img,width,height));
+    #imgx=getImage() currently not working with new changes to idv
+    img=idv.getViewManager().getMaster().getImage(True)
+    if width != None and height != None:
+        img=toBufferedImage(resize(img,width,height));
+    bos=ByteArrayOutputStream();
+    ImageIO.write(img, "png", Base64.getEncoder().wrap(bos));
+    data = bos.toString("UTF-8");
+    return {"display":"image","data":data}
+
+def showImgWithFullWindow(width=None,height=None):
+    """ This function shows the image from current IDV window while in GUI mode. optional arguments are width and height in pixels, they
+    currently default to 600 and 400"""
+    from java.util import Base64 ##only in java8
+    from javax.imageio import ImageIO
+    from java.io import ByteArrayOutputStream
+    from ucar.unidata.ui.ImageUtils import resize,toBufferedImage
+    import java
+    import java.awt.Robot as Robot
+    import java.awt.Rectangle as Rectangle
+    import java.awt.Toolkit as Toolkit
+    from ucar.unidata.util import Misc
+    VM=idv.getViewManager()
+    myframe=VM.getDisplayWindow().getComponent()
+    robotx = Robot(myframe.getGraphicsConfiguration().getDevice())
+    VM.toFront();
+    #robotx.delay(250)
+    Misc.sleep(350)
+    pause()
+    img=robotx.createScreenCapture(Rectangle( myframe.getX(),myframe.getY(),myframe.getWidth(),myframe.getHeight())) 
+    if width != None and height != None:
+        img=toBufferedImage(resize(img,width,height));
+    bos=ByteArrayOutputStream();
+    ImageIO.write(img, "png", Base64.getEncoder().wrap(bos));
+    data = bos.toString("UTF-8");
+    return {"display":"image","data":data}
+
+def showImgWithLegend(width=None,height=None):
+    """ This function shows the image and legend from current IDV window while in GUI mode. Optional arguments are width and height in pixels, they currently default to 600 and 400"""
+    from java.util import Base64 ##only in java8
+    from javax.imageio import ImageIO
+    from java.io import ByteArrayOutputStream
+    from ucar.unidata.ui.ImageUtils import resize,toBufferedImage
+    import java
+    import java.awt.Robot as Robot
+    import java.awt.Rectangle as Rectangle
+    import java.awt.Toolkit as Toolkit
+    from ucar.unidata.util import Misc
+    VM=idv.getViewManager()
+    VMC=VM.getContents()
+    VMCC=VMC.getComponent(1) # the view and legend ; 0 is left most part of view window with controls for perspective views
+    siz=VMCC.getSize()
+    loc= VMCC.getLocationOnScreen()
+    gc= VMCC.getGraphicsConfiguration()
+    loc.x -= gc.getBounds().x
+    loc.y -= gc.getBounds().y
+    robotx=Robot(gc.getDevice())
+    VM.toFront()
+    Misc.sleep(250)
+    img = robotx.createScreenCapture(Rectangle(loc.x, loc.y,siz.width, siz.height))
+    if width != None and height != None:
+        img=toBufferedImage(resize(img,width,height));
+    bos=ByteArrayOutputStream();
+    ImageIO.write(img, "png", Base64.getEncoder().wrap(bos));
+    data = bos.toString("UTF-8");
+    return {"display":"image","data":data}
+
+def BufferedImgToNotebook(img):
+    from java.io import ByteArrayOutputStream
+    from java.util import Base64 ##only in java8
+    from javax.imageio import ImageIO
     bos=ByteArrayOutputStream();
     ImageIO.write(img, "png", Base64.getEncoder().wrap(bos));
     data = bos.toString("UTF-8");
