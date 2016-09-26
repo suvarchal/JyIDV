@@ -15,7 +15,7 @@ from shutil import rmtree
 from base64 import b64encode
 
 from itertools import cycle
-__version__ = '0.9.1'
+__version__ = '1.0.1'
 
 class JythonKernel(Kernel):
     implementation = 'IDV Kernel'
@@ -59,10 +59,8 @@ class JythonKernel(Kernel):
                raise Exception("IDV_HOME not found")
 
             self._child  = spawn(self._executable,timeout = None)
-#            self.jywrapper = replwrap.REPLWrapper(self._child,u">>> ",prompt_change=None,new_prompt=u">>> ",continuation_prompt=u'... ')
-            #rows, cols = map(int, os.popen('stty size', 'r').read().split())
- #           self._child.setwinsize(300,400)
             self._child.waitnoecho(True)
+            self._child.expect(u">>> ")
             self._child.expect(u">>> ")
             self._child.setwinsize(600,400)
         finally:
@@ -257,44 +255,19 @@ class JythonKernel(Kernel):
         return {'status':'ok', 'restart':restart}
     def jyrepl(self,code,timeout=None):
         out=""
-        indents=cycle(map(lambda x: len(x)-len(x.lstrip()),code.splitlines()))
-        indents.next()
-        for line in code.splitlines():
-            #print str(ln+1)+" code is "+line
-            self._child.sendline(line)
+        if (len(re.split(r"\=",code.strip()))==1) and (len(re.split(r"[\ ]",code.strip()))==1) and not code.strip().startswith("print"):
+            code='eval('+repr(code.strip())+')'
+            self._child.sendline(code)
             now_prompt=self._child.expect_exact([u">>> ",u"... "])
+            if len(self._child.before.splitlines())>1:    out+='\n'.join(self._child.before.splitlines()[1:])+'\n'
             now_prompt=self._child.expect_exact([u">>> ",u"... "])
-            if len(self._child.before.splitlines())>1:    out+='\n'.join(self._child.before.splitlines()[1:])+'\n'#for clean outputs
-            curr_indent=len(line)-len(line.lstrip())
-            if not curr_indent==indents.next() and now_prompt==1: #should take care of last line and loops but not loops
-                self._child.send(u'\n')
-                now_prompt=self._child.expect_exact([u">>> ",u"... "])
+        else:
+            code='exec('+repr(code)+')'
+            for line in code.splitlines():
+                self._child.sendline(line)
                 now_prompt=self._child.expect_exact([u">>> ",u"... "])
                 if len(self._child.before.splitlines())>1:    out+='\n'.join(self._child.before.splitlines()[1:])+'\n'
-#        if now_prompt==1:
-#            self._child.send(u'\n')
-#            now_prompt=self._child.expect_exact([u">>> ",u"... "])
-#            now_prompt=self._child.expect_exact([u">>> ",u"... "])
-#            if len(self._child.before.splitlines())>1:    out+='\n'.join(self._child.before.splitlines()[1:])+'\n'
-
-# Below is way to go in future gives line numbers for errors, simple but eval doesnt evaluate one line x=1
-#but exec doesnt return objects, problematic for functions like getImage or anything that returns data or just typing
-#object doesnt produce the object
-#        if len(code.splitlines())==1:
-#            out=""
-#            code='eval('+repr(code.strip())+')'
-#            self._child.sendline(code)
-#            now_prompt=self._child.expect_exact([u">>> ",u"... "])
-#            now_prompt=self._child.expect_exact([u">>> ",u"... "])
-#            if len(self._child.before.splitlines())>1:    out+='\n'.join(self._child.before.splitlines()[1:])+'\n'
-#        else:
-#            out=""
-#            code='exec('+repr(code)+')'
-#            for line in code.splitlines():
-#                self._child.sendline(line)
-#                now_prompt=self._child.expect_exact([u">>> ",u"... "])
-#                now_prompt=self._child.expect_exact([u">>> ",u"... "])
-#                if len(self._child.before.splitlines())>1:    out+='\n'.join(self._child.before.splitlines()[1:])+'\n'
+                now_prompt=self._child.expect_exact([u">>> ",u"... "])
         return out
 if __name__ == '__main__':
     from ipykernel.kernelapp import IPKernelApp
