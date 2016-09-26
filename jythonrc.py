@@ -20,7 +20,8 @@ from visad import *
 from visad.python.JPythonMethods import *
 import ucar
 from java.util import ArrayList
-idv=ucar.unidata.idv.IntegratedDataViewer(0)
+#idv=ucar.unidata.idv.IntegratedDataViewer(0)
+idv=ucar.unidata.idv.DefaultIdv([])
 IdvUIM=idv.getIdvUIManager()
 
 import ucar.unidata.data.grid.GridUtil as GridUtil
@@ -157,10 +158,11 @@ def showIdv(default=False):
     """ This creates a new IDV GUI window for showing after setOffScreen was True, after this GUI window of
     IDV is visible to the user, reset setOffScreen to False to go back into offscreen mode."""
     setOffScreen(False)
-    idv=ucar.unidata.idv.IntegratedDataViewer(True)
-    IdvUIM=idv.getIdvUIManager()
-    IdvUIM.initDone()
-    IdvUIM.closeHelpTips()
+    #idv=ucar.unidata.idv.IntegratedDataViewer(True)
+    idv=ucar.unidata.idv.DefaultIdv(True)
+    #IdvUIM=idv.getIdvUIManager()
+    #IdvUIM.initDone()
+    #IdvUIM.closeHelpTips()
     if default==True:
        if os.path.isfile(os.path.join(str(idv.getResourceManager().getUserPath()),"default.xidv")):
            loadBundle(os.path.join(str(idv.getResourceManager().getUserPath()),"default.xidv"))
