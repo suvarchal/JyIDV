@@ -120,10 +120,12 @@ class JythonKernel(Kernel):
                 display_data = []
                 if not len(glob("%s/*.gif" % plot_dir))==0:
                     gifimages = [open(imgfile, 'rb').read() for imgfile in glob("%s/*.gif" % plot_dir)]
-                for image in gifimages:
+                    for image in gifimages:
                        display_data.append({'image/png': b64encode(image).decode('ascii')})
-                doDisplay=True
-                rmtree(plot_dir)
+                       doDisplay=True
+                    rmtree(plot_dir)
+                else:
+                    output=None
                 #### below works when showMovie imagefile
                 #plot_file=code.strip("showMovie").strip()
                 #display_data = []
