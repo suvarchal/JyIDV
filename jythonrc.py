@@ -159,7 +159,8 @@ def showIdv(default=False):
     IDV is visible to the user, reset setOffScreen to False to go back into offscreen mode."""
     setOffScreen(False)
     #idv=ucar.unidata.idv.IntegratedDataViewer(True)
-    idv=ucar.unidata.idv.DefaultIdv(True)
+    idv=ucar.unidata.idv.DefaultIdv([])
+
     #IdvUIM=idv.getIdvUIManager()
     #IdvUIM.initDone()
     #IdvUIM.closeHelpTips()
@@ -228,6 +229,36 @@ def saveJython(func=None,libname=None):
            raise Exception("Unknown Error saving to IDV Jython library")
     except Exception as exc:
        return "Could not create a IDV Jython library: ",exc
+idvBaseUrl=None
+region=None
+port=idv.getProperty('idv.monitorport','')
+
+def pingIdv():
+    import urllib
+    global idvBaseUrl
+    global port
+    global region 
+    try:
+        idvBaseUrl="http://localhost:"+port
+        return  urllib.urlopen(idvBaseurl+"/ping").read();
+    except IOError:
+        idvBaseUrl="http://127.0.0.1:"+port
+        return  urllib.urlopen(idvbaseurl+"/ping").read();
+    finally:
+        return None
+def runIsl(islcode):
+    import urllib
+    global idvBaseUrl
+    pingIdv()
+    if idvBaseUrl==None:
+        return "Error connot connect to the IDV check your IDV version, only works for IDV > 5.3u1"
+    else:
+        urllib.urlopen(idvBaseUrl+"/loadisl?"+urllib.urlencode({'isl':islcode})).read()
+        #return None
+def loadBundleBB(fileName,north,south,east,west):
+    isl=str('<isl><bundle file="'+str(fileName)+'" /><pause /><center north="'+str(north)+'" west="'+str(west)+'" south="'+str(south)+'" east="'+str(east)+'" /></isl>') 
+    runIsl(isl)
+    idv.getDataManager().reloadAllDataSources()
 
 def do_complete(text):
     """Does code completion"""

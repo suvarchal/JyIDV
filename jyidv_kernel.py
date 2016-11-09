@@ -1,5 +1,6 @@
 from ipykernel.kernelbase import Kernel
 from IPython.utils.path import locate_profile
+from jupyter_client import MultiKernelManager
 from pexpect import replwrap,EOF,spawn
 import signal
 import re
@@ -16,6 +17,7 @@ from base64 import b64encode
 
 from itertools import cycle
 __version__ = '1.0.1'
+km=None
 
 class JythonKernel(Kernel):
     implementation = 'IDV Kernel'
@@ -75,31 +77,52 @@ class JythonKernel(Kernel):
         interrupt = False
         doDisplay = False
         try:
-            if code.strip().startswith("#show"):
-                plot_opts=""
-                if len(code.strip().lstrip("#").strip('()').split('(')[1][1:-1])>1:
-                   plot_opts=code.strip().lstrip("#").strip('()').split('(')[1][1:-1]
-                plot_dir = tempfile.mkdtemp(dir=os.path.expanduser("~"))
-                plot_file=","+plot_dir+"/"+"plot_"+str(random.randint(1000, 9999))+".png"
-                output = self.jyrepl("getImage();writeImage('"+plot_file+"','"+plot_opts+"')", timeout=None)
-                if not len(glob("%s/*.png" % plot_dir))==0:
-                   images = [open(imgfile, 'rb').read() for imgfile in glob("%s/*.png" % plot_dir)]
-                   display_data = []
-
-                   for image in images:
-                       display_data.append({'image/png': b64encode(image).decode('ascii')})
-                   doDisplay=True
-            elif code.strip().startswith("showMovie"):
+            if code.strip().startswith("%%python"):
+                code=code.lstrip("%%python").strip()
+                output=None         
+                display_data=self.do_ipython(code)   
+                if len(display_data)>0:
+                    doDisplay=True
+            elif code.strip().startswith("%%isl"):
+                code=code.lstrip("%%isl").strip()
+                cmd="""runIsl("%s")"""%code
+                output=self.jyrepl(cmd,timeout=None)
+            elif code.strip().startswith("%%HTML"):
+                code=code.lstrip("%%HTML").strip()
+                cmd="""%s"""%code
+                display_data=[]
+                doDisplay=True
+                display_data.append({'text/html':code}) 
+            elif code.strip().startswith("%%Latex"):
+                code=code.lstrip("%%Latex").strip()
+                cmd="""$$%s$$"""%code
+                display_data=[]
+                doDisplay=True
+                display_data.append({'text/latex':cmd}) 
+            elif code.strip().startswith("%Image"):
+                code=code.lstrip("%Image").strip()
+                if glob("%s" % code):
+                    display_data=[]
+                    doDisplay=True
+                    file_enc=b64encode(open(code, "rb").read())
+                    #html_tag = '<img  alt="Embedded Image" src="data:video/x-m4v;base64,{0}">'.format(file_enc)
+                    html_tag = '<img  alt="Embedded Image" src="data:image/png;base64,{0}">'.format(file_enc)
+                    display_data.append({'text/html':html_tag})
+                else:
+                    output=None 
+                #display_data.append({'image/png':}) 
+            elif code.strip().startswith("%showMovie"):
                 plot_dir = tempfile.mkdtemp(dir=os.path.expanduser("~"))
                 plot_file="plot_"+str(random.randint(1000, 9999))+".gif"
                 plot_file=os.path.join(plot_dir,plot_file)
                 cmd='idv.waitUntilDisplaysAreDone();writeMovie('+repr(plot_file)+')'
                 self.jyrepl(cmd)
+                display_data = []
                 if not len(glob("%s/*.gif" % plot_dir))==0:
                     gifimages = [open(imgfile, 'rb').read() for imgfile in glob("%s/*.gif" % plot_dir)]
-                display_data = []
                 for image in gifimages:
                        display_data.append({'image/png': b64encode(image).decode('ascii')})
+                doDisplay=True
                 rmtree(plot_dir)
                 #### below works when showMovie imagefile
                 #plot_file=code.strip("showMovie").strip()
@@ -107,7 +130,6 @@ class JythonKernel(Kernel):
                 #if os.path.isfile(plot_file):
                 #   gifimage = open(plot_file, 'rb').read()
                 #   display_data.append({'image/png': b64encode(gifimage).decode('ascii')})
-                doDisplay=True
             else:
                 output = self.jyrepl(code, timeout=None)
                 if output.lstrip().startswith("{"):
@@ -119,7 +141,7 @@ class JythonKernel(Kernel):
                     output = '\n'.join([line for line in output.splitlines()])+'\n'
         except KeyboardInterrupt:
             self._child.sendintr()
-            output = self._child.before+'\n Got interrupt: Current Jython doenst support Interrupting ...so Restarting.....'
+            output = self._child.before+'\n Got interrupt: Current Jython doesnt support Interrupting ...so Restarting.....'
             interrupt = True
             #self.jyrepl("exit()")
             #self._start_jython()
@@ -188,6 +210,7 @@ class JythonKernel(Kernel):
         #self._child.expect(u">>> ",timeout=None)
         #output=self._child.before
         matches=[]
+        matches=["%%isl","%%python","%showMovie","%%Latex","%%HTML","%Image"]
         code='do_complete('+repr(code)+')'
         output=self.jyrepl(code)
         if len(output)>1:    matches.extend(eval(output))
@@ -269,6 +292,45 @@ class JythonKernel(Kernel):
                 if len(self._child.before.splitlines())>1:    out+='\n'.join(self._child.before.splitlines()[1:])+'\n'
                 now_prompt=self._child.expect_exact([u">>> ",u"... "])
         return out
+    def do_ipython(self,code):
+        global km
+        global km
+        global remote_id
+        global remote
+        global kernelmanager
+        # python=True
+        if km==None:
+            kernelmanager = MultiKernelManager()
+            remote_id = kernelmanager.start_kernel('python2')
+            remote_kernel = kernelmanager.get_kernel(remote_id)
+            remote = remote_kernel.client()
+            km=remote.blocking_client()
+            km.start_channels()
+            if km.shell_channel.msg_ready():
+                km.shell_channel.get_msg()
+                km.iopub_channel.get_msg()
+        #if km.shell_channel.msg_ready():
+        #    km.shell_channel.get_msg()
+        #if km.iopub_channel.msg_ready():
+        #    km.iopub_channel.get_msg()
+        km.execute(code)
+        display_data=[]
+        msgS=km.shell_channel.get_msg(block=True,timeout=-1)
+        msg=km.iopub_channel.get_msg(block=True,timeout=-1)
+        msgs=km.iopub_channel.get_msgs()
+        for m in msgs:
+            if m['msg_type']=='error':
+                output=m['content']['text'] #.__repr__()#+msg+id
+                display_data.append({'text/plain':output})
+                break
+            if m['msg_type']=='stream':
+                output=m['content']['text'] #.__repr__()#+msg+id
+                display_data.append({'text/plain':output})
+            if m['msg_type']=='display_data':
+                display_data.append(m['content']['data'])
+        return display_data
+
+    
 if __name__ == '__main__':
     from ipykernel.kernelapp import IPKernelApp
     IPKernelApp.launch_instance(kernel_class=JythonKernel)
