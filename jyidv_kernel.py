@@ -137,8 +137,11 @@ class JythonKernel(Kernel):
                 if output.lstrip().startswith("{"):
                     out=eval(output.strip())
                     display_data=[]
-                    display_data.append({'image/png': out['data']})
-                    doDisplay=True
+                    try:
+                        display_data.append({'image/png': out['data']})
+                        doDisplay=True
+                    except KeyError:
+                        output = '\n'.join([line for line in output.splitlines()])+'\n'
                 else:
                     output = '\n'.join([line for line in output.splitlines()])+'\n'
         except KeyboardInterrupt:
@@ -191,7 +194,8 @@ class JythonKernel(Kernel):
         if not code or code[-1] == ' ':
             return default
 
-        tokens = code.split()
+        #tokens = code.split()
+        tokens = re.split(r"[^\w\.]",code)
         if not tokens:
             return default
         token = tokens[-1]
@@ -213,7 +217,7 @@ class JythonKernel(Kernel):
         #output=self._child.before
         matches=[]
         matches=["%%isl","%%python","%showMovie","%%Latex","%%HTML","%Image"]
-        code='do_complete('+repr(code)+')'
+        code='do_complete('+repr(token)+')'
         output=self.jyrepl(code)
         if len(output)>1:    matches.extend(eval(output))
     #matches.extend([e for e in re.split(r"[^\w]",output)[:] if not e.strip()=="" and not e.strip().startswith("__")])
